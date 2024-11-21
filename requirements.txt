@@ -9,6 +9,5 @@ tiktoken
 torch
 transformers==4.33.0 
 sentence_transformers==2.2.2 
-onnxruntime==1.17.1
-sqlite3 == 3.35.0
+pysqlite3-binary
 chromadb==0.5.0

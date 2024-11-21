@@ -5,9 +5,9 @@ import sys
 sys.modules["sqlite3"] = sys.modules.pop("pysqlite3")
 import chromadb
 from langchain.chains import RetrievalQA, ConversationalRetrievalChain
-from langchain.embeddings import OpenAIEmbeddings
-from langchain.vectorstores import Chroma
-from langchain.document_loaders import DirectoryLoader
+from langchain_community.embeddings import OpenAIEmbeddings
+from langchain_community.vectorstores import Chroma
+from langchain_community.document_loaders import DirectoryLoader
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.memory import ConversationBufferMemory
 from transformers import AutoTokenizer, AutoModelForCausalLM
@@ -81,7 +81,12 @@ def process_documents():
                 
                 documents = load_documents()
                 texts = split_documents(documents)
-                st.session_state.retriever = embeddings_on_local_vectordb(texts)
+                # Initialize retriever if it doesn't exist
+                if 'retriever' not in st.session_state:
+                    st.session_state.retriever = embeddings_on_local_vectordb(texts)
+                else:
+                    # Update retriever if it already exists
+                    st.session_state.retriever.add_documents(texts)
         except Exception as e:
             st.error(f"An error occurred: {e}")
 

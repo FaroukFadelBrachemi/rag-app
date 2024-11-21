@@ -6,6 +6,7 @@ unstructured
 unstructured[pdf]
 openai
 tiktoken
+torch
 transformers==4.33.0
 accelerate==0.22.0
 einops==0.6.1

@@ -1,6 +1,5 @@
 import os
 from pathlib import Path
-from past.builtins import xrange
 from PyPDF2 import PdfReader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.embeddings import OpenAIEmbeddings

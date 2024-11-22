@@ -9,7 +9,8 @@ from langchain.prompts import PromptTemplate
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import streamlit as st
 
-# Define constants
+OPENAI_API_KEY='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'
+
 LOCAL_VECTOR_STORE_DIR = Path("vector_store")
 
 st.set_page_config(page_title="Chat with PDF using LLaMA")
@@ -46,7 +47,7 @@ def get_vector_store(text_chunks):
     Generate a vector store from text chunks.
     """
     try:
-        embeddings = OpenAIEmbeddings()
+        embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
         vector_store = FAISS.from_texts(text_chunks, embedding=embeddings)
         vector_store.save_local(LOCAL_VECTOR_STORE_DIR.as_posix())
     except Exception as e:
@@ -81,7 +82,7 @@ def user_input(user_question):
     Process user queries and generate responses.
     """
     try:
-        embeddings = OpenAIEmbeddings()
+        embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
         vector_store = FAISS.load_local(LOCAL_VECTOR_STORE_DIR.as_posix(), embeddings)
         docs = vector_store.similarity_search(user_question)
 

@@ -8,8 +8,14 @@ from langchain.chains.question_answering import load_qa_chain
 from langchain.prompts import PromptTemplate
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import streamlit as st
+from dotenv import load_dotenv
 
-OPENAI_API_KEY='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'
+load_dotenv()
+#---- Set OpenAI API key 
+# Change environment variable name from "OPENAI_API_KEY" to the name given in 
+# your .env file.
+openai.api_key = os.environ['OPENAI_API_KEY']
+
 LOCAL_VECTOR_STORE_DIR = Path("vector_store")
 LOCAL_VECTOR_STORE_DIR.mkdir(parents=True, exist_ok=True)
 

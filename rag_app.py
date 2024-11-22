@@ -26,12 +26,15 @@ LOCAL_VECTOR_STORE_DIR.mkdir(parents=True, exist_ok=True)
 st.set_page_config(page_title="RAG")
 st.title("Retrieval Augmented Generation Engine")
 
-
+DATA_PATH='data'
+# def load_documents():
+#     loader = DirectoryLoader(TMP_DIR.as_posix(), glob='**/*.pdf')
+#     documents = loader.load()
+#     return documents
 def load_documents():
-    loader = DirectoryLoader(TMP_DIR.as_posix(), glob='**/*.pdf')
+    loader = DirectoryLoader(DATA_PATH, glob="*.pdf")
     documents = loader.load()
     return documents
-
 
 def split_documents(documents):
     text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)

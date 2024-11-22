@@ -91,11 +91,13 @@ def process_documents():
             st.error(f"An error occurred: {e}")
 
 def boot():
-    input_fields()
-    st.button("Submit Documents", on_click=process_documents)
-
     if "messages" not in st.session_state:
         st.session_state.messages = []
+    if "retriever" not in st.session_state:
+        st.session_state.retriever = None
+
+    input_fields()
+    st.button("Submit Documents", on_click=process_documents)
 
     for message in st.session_state.messages:
         st.chat_message('human').write(message[0])
@@ -103,8 +105,12 @@ def boot():
 
     if query := st.chat_input():
         st.chat_message("human").write(query)
-        response = query_llm(st.session_state.retriever, query)
-        st.chat_message("ai").write(response)
+        if st.session_state.retriever is None:
+            st.warning("No retriever available. Please upload documents first.")
+        else:
+            response = query_llm(st.session_state.retriever, query)
+            st.chat_message("ai").write(response)
+
 
 if __name__ == '__main__':
     boot()

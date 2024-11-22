@@ -4,6 +4,7 @@ langchain-openai
 streamlit
 unstructured
 unstructured[pdf]
+PyPDF2
 openai
 tiktoken
 torch

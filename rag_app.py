@@ -23,8 +23,9 @@ def get_pdf_text(pdf_docs):
         text = ""
         for pdf in pdf_docs:
             pdf_reader = fitz.open(pdf)
-            for page in pdf_reader.pages:
-                text += page.extract_text() or ""
+            for page_num in range(pdf_reader.page_count):  # Iterate through the pages using range
+                page = pdf_reader.load_page(page_num)  # Load each page by index
+                text += page.get_text() or ""  # Extract text from the page
         return text
     except Exception as e:
         st.error(f"Error reading PDF files: {e}")

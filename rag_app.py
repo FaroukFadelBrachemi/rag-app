@@ -11,7 +11,7 @@ import streamlit as st
 
 OPENAI_API_KEY='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'
 
-LOCAL_VECTOR_STORE_DIR = Path("vector_store")
+LOCAL_VECTOR_STORE_DIR.mkdir(parents=True, exist_ok=True)
 
 st.set_page_config(page_title="Chat with PDF using LLaMA")
 

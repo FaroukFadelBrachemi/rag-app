@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from PyPDF2 import PdfReader
+import fitz
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.embeddings import OpenAIEmbeddings
 from langchain.vectorstores import FAISS
@@ -21,7 +21,7 @@ def get_pdf_text(pdf_docs):
     try:
         text = ""
         for pdf in pdf_docs:
-            pdf_reader = PdfReader(pdf)
+            pdf_reader = fitz.open(pdf)
             for page in pdf_reader.pages:
                 text += page.extract_text() or ""
         return text

@@ -83,7 +83,7 @@ def user_input(user_question):
     """
     try:
         embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
-        vector_store = FAISS.load_local(LOCAL_VECTOR_STORE_DIR.as_posix(), embeddings)
+        vector_store = FAISS.load_local(LOCAL_VECTOR_STORE_DIR.as_posix(), embeddings, allow_dangerous_deserialization=True)
         docs = vector_store.similarity_search(user_question)
 
         chain = get_conversational_chain()

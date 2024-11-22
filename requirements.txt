@@ -15,3 +15,4 @@ chromadb==0.5.0
 faiss-cpu
 langchain_google_genai
 pycryptodome
+future

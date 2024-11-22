@@ -1,126 +1,123 @@
 import os
-import tempfile
 from pathlib import Path
-import pysqlite3
-import sys
-
-sys.modules["sqlite3"] = sys.modules.pop("pysqlite3")
-
-import chromadb
-from langchain.chains import RetrievalQA, ConversationalRetrievalChain
+from PyPDF2 import PdfReader
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.embeddings import OpenAIEmbeddings
-from langchain_community.vectorstores import Chroma
-from langchain_community.document_loaders import DirectoryLoader
-from langchain.text_splitter import CharacterTextSplitter
+from langchain.vectorstores import FAISS
+from langchain.chains.question_answering import load_qa_chain
+from langchain.prompts import PromptTemplate
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import streamlit as st
 
-# Set up directories
-TMP_DIR = Path(__file__).resolve().parent.joinpath('data', 'tmp')
-LOCAL_VECTOR_STORE_DIR = Path(__file__).resolve().parent.joinpath('data', 'vector_store')
+# Define constants
+LOCAL_VECTOR_STORE_DIR = Path("vector_store")
 
-# Ensure directories exist
-TMP_DIR.mkdir(parents=True, exist_ok=True)
-LOCAL_VECTOR_STORE_DIR.mkdir(parents=True, exist_ok=True)
+st.set_page_config(page_title="Chat with PDF using LLaMA")
 
-st.set_page_config(page_title="RAG")
-st.title("Retrieval Augmented Generation Engine")
+def get_pdf_text(pdf_docs):
+    """
+    Extract text from multiple PDF files.
+    """
+    try:
+        text = ""
+        for pdf in pdf_docs:
+            pdf_reader = PdfReader(pdf)
+            for page in pdf_reader.pages:
+                text += page.extract_text() or ""
+        return text
+    except Exception as e:
+        st.error(f"Error reading PDF files: {e}")
+        return ""
 
-DATA_PATH='data'
-# def load_documents():
-#     loader = DirectoryLoader(TMP_DIR.as_posix(), glob='**/*.pdf')
-#     documents = loader.load()
-#     return documents
-def load_documents():
-    document = load_document('Resume.pdf')
-    return document
+def get_text_chunks(text):
+    """
+    Split text into manageable chunks.
+    """
+    try:
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
+        chunks = text_splitter.split_text(text)
+        return chunks
+    except Exception as e:
+        st.error(f"Error splitting text into chunks: {e}")
+        return []
 
-def split_documents(documents):
-    text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
-    texts = text_splitter.split_documents(documents)
-    return texts
+def get_vector_store(text_chunks):
+    """
+    Generate a vector store from text chunks.
+    """
+    try:
+        embeddings = OpenAIEmbeddings()
+        vector_store = FAISS.from_texts(text_chunks, embedding=embeddings)
+        vector_store.save_local(LOCAL_VECTOR_STORE_DIR.as_posix())
+    except Exception as e:
+        st.error(f"Error creating vector store: {e}")
 
+def get_conversational_chain():
+    """
+    Create a conversational chain for answering questions.
+    """
+    try:
+        prompt_template = """
+        Answer the question as detailed as possible from the provided context. If the answer is not in
+        the provided context, respond with "The answer is not available in the context." Avoid providing incorrect information.
 
-def embeddings_on_local_vectordb(texts):
-    vectordb = Chroma.from_documents(
-        texts,
-        embedding=OpenAIEmbeddings(),
-        persist_directory=LOCAL_VECTOR_STORE_DIR.as_posix()
-    )
-    vectordb.persist()
-    retriever = vectordb.as_retriever(search_kwargs={'k': 7})
-    return retriever
+        Context:\n {context}\n
+        Question: {question}\n
+        Answer:
+        """
+        model_name = "meta-llama/Llama-2-70b-chat-hf"
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        model = AutoModelForCausalLM.from_pretrained(model_name)
 
+        prompt = PromptTemplate(template=prompt_template, input_variables=["context", "question"])
+        chain = load_qa_chain(model, chain_type="stuff", prompt=prompt)
+        return chain
+    except Exception as e:
+        st.error(f"Error loading conversational chain: {e}")
+        return None
 
-def load_llama_model():
-    model_name = "meta-llama/Llama-2-70b-chat-hf"
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    model = AutoModelForCausalLM.from_pretrained(model_name)
-    return model, tokenizer
+def user_input(user_question):
+    """
+    Process user queries and generate responses.
+    """
+    try:
+        embeddings = OpenAIEmbeddings()
+        vector_store = FAISS.load_local(LOCAL_VECTOR_STORE_DIR.as_posix(), embeddings)
+        docs = vector_store.similarity_search(user_question)
 
+        chain = get_conversational_chain()
+        if chain:
+            response = chain({"input_documents": docs, "question": user_question}, return_only_outputs=True)
+            st.write("Reply: ", response["output_text"])
+    except Exception as e:
+        st.error(f"Error processing user query: {e}")
 
-def query_llm(retriever, query):
-    model, tokenizer = load_llama_model()
-    relevant_docs = retriever.get_relevant_documents(query)
-    context = "\n".join([doc['text'] for doc in relevant_docs])
-    input_text = f"Question: {query}\nContext: {context}\nAnswer:"
-    inputs = tokenizer(input_text, return_tensors="pt")
-    outputs = model.generate(**inputs, max_length=512, num_beams=5, early_stopping=True)
-    response = tokenizer.decode(outputs[0], skip_special_tokens=True)
+def main():
+    """
+    Main application function.
+    """
+    st.title("Chat with PDF using LLaMA")
 
-    st.session_state.messages.append((query, response))
-    return response
+    user_question = st.text_input("Ask a Question about the PDF Files")
 
+    if user_question:
+        user_input(user_question)
 
-def input_fields():
     with st.sidebar:
-        st.session_state.source_docs = st.file_uploader(label="Upload Documents", type="pdf", accept_multiple_files=True)
-
-
-def process_documents():
-    if not st.session_state.source_docs:
-        st.warning("Please upload documents.")
-    else:
-        try:
-            for source_doc in st.session_state.source_docs:
-                with tempfile.NamedTemporaryFile(delete=False, dir=TMP_DIR.as_posix(), suffix='.pdf') as tmp_file:
-                    tmp_file.write(source_doc.read())
-
-            documents = load_documents()
-            texts = split_documents(documents)
-
-            if 'retriever' not in st.session_state or st.session_state.retriever is None:
-                st.session_state.retriever = embeddings_on_local_vectordb(texts)
+        st.title("Menu")
+        pdf_docs = st.file_uploader("Upload your PDF Files", accept_multiple_files=True, type="pdf")
+        if st.button("Submit & Process"):
+            if not pdf_docs:
+                st.error("Please upload at least one PDF file.")
             else:
-                # Update retriever with new documents
-                st.session_state.retriever.add_documents(texts)
+                with st.spinner("Processing..."):
+                    # Process uploaded PDF files
+                    raw_text = get_pdf_text(pdf_docs)
+                    if raw_text:
+                        text_chunks = get_text_chunks(raw_text)
+                        if text_chunks:
+                            get_vector_store(text_chunks)
+                            st.success("Processing complete!")
 
-        except Exception as e:
-            st.error(f"An error occurred while processing documents: {e}")
-
-
-def boot():
-    # Initialize session state variables
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
-    if "retriever" not in st.session_state:
-        st.session_state.retriever = None
-
-    input_fields()
-    st.button("Submit Documents", on_click=process_documents)
-
-    for message in st.session_state.messages:
-        st.chat_message('human').write(message[0])
-        st.chat_message('ai').write(message[1])
-
-    if query := st.chat_input():
-        st.chat_message("human").write(query)
-        if st.session_state.retriever is None:
-            st.warning("No retriever available. Please upload documents first.")
-        else:
-            response = query_llm(st.session_state.retriever, query)
-            st.chat_message("ai").write(response)
-
-
-if __name__ == '__main__':
-    boot()
+if __name__ == "__main__":
+    main()

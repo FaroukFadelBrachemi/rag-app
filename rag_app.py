@@ -11,9 +11,6 @@ import streamlit as st
 from dotenv import load_dotenv
 
 load_dotenv()
-#---- Set OpenAI API key 
-# Change environment variable name from "OPENAI_API_KEY" to the name given in 
-# your .env file.
 openai.api_key = os.environ['OPENAI_API_KEY']
 
 LOCAL_VECTOR_STORE_DIR = Path("vector_store")
@@ -54,7 +51,7 @@ def get_vector_store(text_chunks):
     Generate a vector store from text chunks.
     """
     try:
-        embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
+        embeddings = OpenAIEmbeddings()
         vector_store = FAISS.from_texts(text_chunks, embedding=embeddings)
         vector_store.save_local(LOCAL_VECTOR_STORE_DIR.as_posix())
     except Exception as e:
@@ -89,7 +86,7 @@ def user_input(user_question):
     Process user queries and generate responses.
     """
     try:
-        embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
+        embeddings = OpenAIEmbeddings()
         vector_store = FAISS.load_local(LOCAL_VECTOR_STORE_DIR.as_posix(), embeddings, allow_dangerous_deserialization=True)
         docs = vector_store.similarity_search(user_question)
 

@@ -32,9 +32,8 @@ DATA_PATH='data'
 #     documents = loader.load()
 #     return documents
 def load_documents():
-    loader = DirectoryLoader(DATA_PATH, glob="*.pdf")
-    documents = loader.load()
-    return documents
+    document = load_document('Resume.pdf')
+    return document
 
 def split_documents(documents):
     text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)

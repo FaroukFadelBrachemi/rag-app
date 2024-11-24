@@ -11,8 +11,8 @@ import streamlit as st
 from dotenv import load_dotenv
 
 load_dotenv()
-openai.api_key = os.environ['OPENAI_API_KEY']
 
+# Path for local vector store
 LOCAL_VECTOR_STORE_DIR = Path("vector_store")
 LOCAL_VECTOR_STORE_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -81,11 +81,14 @@ def get_conversational_chain():
         st.error(f"Error loading conversational chain: {e}")
         return None
 
-def user_input(user_question):
+def user_input(user_question, api_key):
     """
     Process user queries and generate responses.
     """
     try:
+        # Set the API key dynamically
+        os.environ["OPENAI_API_KEY"] = api_key
+
         embeddings = OpenAIEmbeddings()
         vector_store = FAISS.load_local(LOCAL_VECTOR_STORE_DIR.as_posix(), embeddings, allow_dangerous_deserialization=True)
         docs = vector_store.similarity_search(user_question)
@@ -103,10 +106,17 @@ def main():
     """
     st.title("Chat with PDF using LLaMA")
 
+    # Input field for OpenAI API Key
+    api_key = st.text_input("Enter your OpenAI API Key", type="password")
+
+    if not api_key:
+        st.warning("Please enter your OpenAI API Key to proceed.")
+        return
+
     user_question = st.text_input("Ask a Question about the PDF Files")
 
     if user_question:
-        user_input(user_question)
+        user_input(user_question, api_key)
 
     with st.sidebar:
         st.title("Menu")

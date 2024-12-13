@@ -1,16 +1,2 @@
-langchain
-langchain-community
-langchain-openai
+embedchain
 streamlit
-unstructured
-unstructured[pdf]
-pymupdf
-openai
-tiktoken
-torch
-transformers==4.35.1
-sentence_transformers==2.2.2 
-pysqlite3-binary
-chromadb==0.5.0
-faiss-cpu
-langchain_google_genai
